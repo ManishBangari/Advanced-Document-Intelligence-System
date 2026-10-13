@@ -597,7 +597,7 @@ Update this section as the project evolves.
 - [x] Phase 3 — Hybrid retrieval
 - [x] Phase 4 — Evidence-backed question answering
 - [x] Phase 5 — Document comparison
-- [ ] Phase 6 — Structured extraction
+- [x] Phase 6 — Structured extraction
 - [ ] Phase 7 — Streamlit UI
 - [ ] Phase 8 — Testing and evaluation
 - [ ] Phase 9 — Packaging and documentation

@@ -4,7 +4,7 @@ This project is a local-first document RAG prototype for ingesting documents, sp
 
 ## Current status
 
-The repository currently supports a local ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs. Phase 2 adds safe FAISS lifecycle management with SQLite-backed canonical metadata. Phase 3 adds hybrid retrieval with BM25 + vector fusion. Phase 4 adds evidence-grounded QA and explicit abstention when relevant passages are absent. Phase 5 adds structured document comparison that flags identical passages, value changes, not-found cases, and uncertain comparisons with real source citations.
+The repository currently supports a local ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs. Phase 2 adds safe FAISS lifecycle management with SQLite-backed canonical metadata. Phase 3 adds hybrid retrieval with BM25 + vector fusion. Phase 4 adds evidence-grounded QA and explicit abstention when relevant passages are absent. Phase 5 adds structured document comparison that flags identical passages, value changes, not-found cases, and uncertain comparisons with real source citations. Phase 6 adds schema-validated structured extraction from document text with source references and explicit missing-field handling.
 
 ## Supported file types
 
@@ -50,6 +50,10 @@ The comparison layer supports evidence-backed comparisons across two or more sel
 - real citations for both sides, including source and chunk metadata when available
 
 The comparison module is intentionally conservative and does not infer claims that are not directly supported by the selected passages.
+
+## Structured extraction
+
+The extraction layer supports schema-driven field extraction from document text using Pydantic validation. It preserves source evidence for each extracted value and leaves missing or unsupported fields as `null`/missing instead of guessing. The default schema covers common document facts such as contract IDs, monetary amounts, effective dates, and status values; custom schema definitions can be supplied for other document types.
 
 ## Local setup
 
