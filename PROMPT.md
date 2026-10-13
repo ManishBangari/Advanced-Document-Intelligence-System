@@ -593,7 +593,7 @@ Update this section as the project evolves.
 
 - [x] Phase 0 — Repository audit
 - [x] Phase 1 — Ingestion and metadata
-- [ ] Phase 2 — FAISS persistence and document lifecycle
+- [x] Phase 2 — FAISS persistence and document lifecycle
 - [ ] Phase 3 — Hybrid retrieval
 - [ ] Phase 4 — Evidence-backed question answering
 - [ ] Phase 5 — Document comparison
@@ -610,10 +610,10 @@ Update this section as the project evolves.
 - Embedding model: `all-MiniLM-L6-v2`
 - Supported file formats: PDF, TXT, CSV, Excel, DOCX, JSON
 - Chunk size and overlap: default 1000/200, validated to keep overlap smaller than the chunk size
-- Index/data storage paths: local `data/` plus persistent `faiss_store/`
+- Index/data storage paths: local `data/` plus persistent `faiss_store/` and SQLite metadata database in `faiss_store/documents.db`
 - Known hardware limitations: first-time embedding model download can take time; a local model is optional for ingestion but required for embedding generation
 - Other constraints: ingest metadata is treated as canonical, FAISS is kept as a derived index layer, and empty/unsupported files are skipped with clear warnings
 
 ## Next Action
 
-Move forward with **Phase 2** after validating the Phase 1 ingestion metadata improvements and the results of the focused tests.
+Move forward to **Phase 3**: hybrid retrieval with BM25 + vector results fused deterministically, while keeping retrieval separate from generation and UI concerns.
