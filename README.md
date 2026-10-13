@@ -4,7 +4,7 @@ This project is a local-first document RAG prototype for ingesting documents, sp
 
 ## Current status
 
-The repository currently supports a local ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs. Phase 2 adds safe FAISS lifecycle management with SQLite-backed canonical metadata. Phase 3 adds hybrid retrieval with BM25 + vector fusion.
+The repository currently supports a local ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs. Phase 2 adds safe FAISS lifecycle management with SQLite-backed canonical metadata. Phase 3 adds hybrid retrieval with BM25 + vector fusion. Phase 4 adds evidence-grounded QA and explicit abstention when relevant passages are absent. Phase 5 adds structured document comparison that flags identical passages, value changes, not-found cases, and uncertain comparisons with real source citations.
 
 ## Supported file types
 
@@ -38,6 +38,18 @@ The retrieval layer supports three modes:
 - `hybrid` for Reciprocal Rank Fusion (RRF) across semantic and BM25 result lists
 
 This keeps retrieval independent from generation and allows deterministic, metadata-rich result fusion without requiring a hosted vector database.
+
+## Document comparison
+
+The comparison layer supports evidence-backed comparisons across two or more selected documents. It reports:
+
+- identical passages with no substantive change
+- value changes such as date or numeric differences
+- missing sections as `not_found_in_source` rather than proof of absence
+- uncertain comparisons when evidence is ambiguous or scope differs
+- real citations for both sides, including source and chunk metadata when available
+
+The comparison module is intentionally conservative and does not infer claims that are not directly supported by the selected passages.
 
 ## Local setup
 
