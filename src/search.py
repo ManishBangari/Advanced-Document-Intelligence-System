@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from rank_bm25 import BM25Okapi
 
+from src.qa_engine import QAEngine, build_local_llm
 from src.vectorstore import FaissVectorStore
 
 load_dotenv()
@@ -114,12 +115,20 @@ class RAGSearch:
         else:
             self.vectorstore.load()
         self.retriever = HybridRetriever(self.vectorstore)
-        groq_api_key = os.getenv("GROQ_API_KEY", "")
-        self.llm = ChatGroq(groq_api_key=groq_api_key, model_name=llm_model)
-        print(f"[INFO] Groq LLM initialized: {llm_model}")
+        self.llm_model = llm_model
+        self.llm = build_local_llm()
+        if self.llm is None:
+            print("[INFO] No local generation backend configured; retrieval-only mode is available.")
+        else:
+            print(f"[INFO] Groq LLM initialized: {llm_model}")
 
     def search(self, query: str, top_k: int = 5, retrieval_mode: str = "hybrid") -> List[Dict[str, Any]]:
         return self.retriever.search(query=query, top_k=top_k, retrieval_mode=retrieval_mode)
+
+    def answer_question(self, query: str, top_k: int = 5, retrieval_mode: str = "hybrid") -> Dict[str, Any]:
+        results = self.search(query, top_k=top_k, retrieval_mode=retrieval_mode)
+        engine = QAEngine(llm=self.llm)
+        return engine.answer(query, results, llm=self.llm)
 
     def search_and_summarize(self, query: str, top_k: int = 5, retrieval_mode: str = "hybrid") -> str:
         results = self.search(query, top_k=top_k, retrieval_mode=retrieval_mode)
@@ -127,6 +136,8 @@ class RAGSearch:
         context = "\n\n".join(texts)
         if not context:
             return "No relevant documents found."
+        if self.llm is None:
+            return "No generation backend is configured. Retrieved evidence is available for inspection."
         prompt = f"""Summarize the following context for the query: '{query}'\n\nContext:\n{context}\n\nSummary:"""
         response = self.llm.invoke([prompt])
         return response.content
