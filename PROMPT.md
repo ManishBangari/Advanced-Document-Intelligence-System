@@ -594,7 +594,7 @@ Update this section as the project evolves.
 - [x] Phase 0 — Repository audit
 - [x] Phase 1 — Ingestion and metadata
 - [x] Phase 2 — FAISS persistence and document lifecycle
-- [ ] Phase 3 — Hybrid retrieval
+- [x] Phase 3 — Hybrid retrieval
 - [ ] Phase 4 — Evidence-backed question answering
 - [ ] Phase 5 — Document comparison
 - [ ] Phase 6 — Structured extraction

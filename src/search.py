@@ -1,29 +1,129 @@
 import os
+import re
+from typing import Any, Dict, Iterable, List, Optional
+
 from dotenv import load_dotenv
-from src.vectorstore import FaissVectorStore
 from langchain_groq import ChatGroq
+from rank_bm25 import BM25Okapi
+
+from src.vectorstore import FaissVectorStore
 
 load_dotenv()
+
+
+def _tokenize(text: str) -> List[str]:
+    return re.findall(r"\w+", (text or "").lower())
+
+
+class HybridRetriever:
+    def __init__(self, vectorstore: FaissVectorStore):
+        self.vectorstore = vectorstore
+
+    def _metadata_key(self, item: Dict[str, Any]) -> str:
+        metadata = item.get("metadata") or {}
+        if isinstance(metadata, dict):
+            return (
+                metadata.get("chunk_id")
+                or metadata.get("document_id")
+                or metadata.get("source")
+                or metadata.get("text")
+                or str(item.get("index"))
+            )
+        return str(item.get("index"))
+
+    def _vector_results(self, query: str, top_k: int) -> List[Dict[str, Any]]:
+        if not hasattr(self.vectorstore, "query"):
+            return []
+        return self.vectorstore.query(query, top_k=top_k)
+
+    def _bm25_results(self, query: str, top_k: int) -> List[Dict[str, Any]]:
+        metadata_items = getattr(self.vectorstore, "metadata", []) or []
+        if not metadata_items:
+            return []
+
+        corpus = []
+        for metadata in metadata_items:
+            if not isinstance(metadata, dict):
+                continue
+            text = metadata.get("text") or ""
+            corpus.append(text)
+
+        if not corpus:
+            return []
+
+        tokenized_corpus = [_tokenize(text) for text in corpus]
+        tokens = _tokenize(query)
+        if not tokens:
+            return []
+
+        bm25 = BM25Okapi(tokenized_corpus)
+        scores = bm25.get_scores(tokens)
+        ranked_indices = sorted(range(len(scores)), key=lambda idx: scores[idx], reverse=True)[:top_k]
+        results = []
+        for idx in ranked_indices:
+            metadata = metadata_items[idx]
+            if isinstance(metadata, dict):
+                results.append({"index": idx, "score": float(scores[idx]), "metadata": metadata})
+        return results
+
+    def reciprocal_rank_fusion(self, result_sets: Iterable[List[Dict[str, Any]]], k: int = 60) -> List[Dict[str, Any]]:
+        fused_scores: Dict[str, float] = {}
+        fused_items: Dict[str, Dict[str, Any]] = {}
+        for result_set in result_sets:
+            for rank, item in enumerate(result_set):
+                key = self._metadata_key(item)
+                fused_scores[key] = fused_scores.get(key, 0.0) + (1.0 / (k + rank + 1))
+                if key not in fused_items:
+                    fused_items[key] = item
+
+        ranked = sorted(fused_scores.items(), key=lambda pair: pair[1], reverse=True)
+        merged: List[Dict[str, Any]] = []
+        for key, score in ranked:
+            item = fused_items[key]
+            item = dict(item)
+            item["score"] = float(score)
+            merged.append(item)
+        return merged
+
+    def search(self, query: str, top_k: int = 5, retrieval_mode: str = "hybrid") -> List[Dict[str, Any]]:
+        retrieval_mode = (retrieval_mode or "hybrid").lower()
+        vector_results = self._vector_results(query, top_k=top_k)
+        bm25_results = self._bm25_results(query, top_k=top_k)
+
+        if retrieval_mode == "vector":
+            return vector_results[:top_k]
+        if retrieval_mode == "bm25":
+            return bm25_results[:top_k]
+
+        if not vector_results and not bm25_results:
+            return []
+
+        merged = self.reciprocal_rank_fusion([vector_results, bm25_results])
+        return merged[:top_k]
+
 
 class RAGSearch:
     def __init__(self, persist_dir: str = "faiss_store", embedding_model: str = "all-MiniLM-L6-v2", llm_model: str = "openai/gpt-oss-120b"):
         self.vectorstore = FaissVectorStore(persist_dir, embedding_model)
-        # Load or build vectorstore
         faiss_path = os.path.join(persist_dir, "faiss.index")
         meta_path = os.path.join(persist_dir, "metadata.pkl")
         if not (os.path.exists(faiss_path) and os.path.exists(meta_path)):
-            from data_loader import load_all_documents
+            from src.data_loader import load_all_documents
             docs = load_all_documents("data")
             self.vectorstore.build_from_documents(docs)
         else:
             self.vectorstore.load()
-        groq_api_key = ""
+        self.retriever = HybridRetriever(self.vectorstore)
+        groq_api_key = os.getenv("GROQ_API_KEY", "")
         self.llm = ChatGroq(groq_api_key=groq_api_key, model_name=llm_model)
         print(f"[INFO] Groq LLM initialized: {llm_model}")
 
-    def search_and_summarize(self, query: str, top_k: int = 5) -> str:
-        results = self.vectorstore.query(query, top_k=top_k)
-        texts = [r["metadata"].get("text", "") for r in results if r["metadata"]]
+    def search(self, query: str, top_k: int = 5, retrieval_mode: str = "hybrid") -> List[Dict[str, Any]]:
+        return self.retriever.search(query=query, top_k=top_k, retrieval_mode=retrieval_mode)
+
+    def search_and_summarize(self, query: str, top_k: int = 5, retrieval_mode: str = "hybrid") -> str:
+        results = self.search(query, top_k=top_k, retrieval_mode=retrieval_mode)
+        texts = [result.get("metadata", {}).get("text", "") for result in results if isinstance(result, dict) and result.get("metadata")]
         context = "\n\n".join(texts)
         if not context:
             return "No relevant documents found."
@@ -31,7 +131,7 @@ class RAGSearch:
         response = self.llm.invoke([prompt])
         return response.content
 
-# Example usage
+
 if __name__ == "__main__":
     rag_search = RAGSearch()
     query = "What is attention mechanism?"

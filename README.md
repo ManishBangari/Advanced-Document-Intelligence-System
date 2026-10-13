@@ -4,7 +4,7 @@ This project is a local-first document RAG prototype for ingesting documents, sp
 
 ## Current status
 
-The repository currently supports a basic ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs.
+The repository currently supports a local ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs. Phase 2 adds safe FAISS lifecycle management with SQLite-backed canonical metadata. Phase 3 adds hybrid retrieval with BM25 + vector fusion.
 
 ## Supported file types
 
@@ -28,6 +28,16 @@ Each loaded document keeps source metadata such as:
 - `chunk_id` after chunking
 
 The project uses SHA-256 hashing to detect duplicate or changed files. Empty files and empty chunks are skipped safely.
+
+## Hybrid retrieval
+
+The retrieval layer supports three modes:
+
+- `vector` for semantic retrieval only
+- `bm25` for keyword retrieval only
+- `hybrid` for Reciprocal Rank Fusion (RRF) across semantic and BM25 result lists
+
+This keeps retrieval independent from generation and allows deterministic, metadata-rich result fusion without requiring a hosted vector database.
 
 ## Local setup
 
