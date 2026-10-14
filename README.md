@@ -4,7 +4,7 @@ This project is a local-first document RAG prototype for ingesting documents, sp
 
 ## Current status
 
-The repository currently supports a local ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs. Phase 2 adds safe FAISS lifecycle management with SQLite-backed canonical metadata. Phase 3 adds hybrid retrieval with BM25 + vector fusion. Phase 4 adds evidence-grounded QA and explicit abstention when relevant passages are absent. Phase 5 adds structured document comparison that flags identical passages, value changes, not-found cases, and uncertain comparisons with real source citations. Phase 6 adds schema-validated structured extraction from document text with source references and explicit missing-field handling.
+The repository currently supports a local ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs. Phase 2 adds safe FAISS lifecycle management with SQLite-backed canonical metadata. Phase 3 adds hybrid retrieval with BM25 + vector fusion. Phase 4 adds evidence-grounded QA and explicit abstention when relevant passages are absent. Phase 5 adds structured document comparison that flags identical passages, value changes, not-found cases, and uncertain comparisons with real source citations. Phase 6 adds schema-validated structured extraction from document text with source references and explicit missing-field handling. Phase 7 adds a Streamlit UI with document management, document Q&A, side-by-side comparison, and structured extraction workflows built over the tested service modules.
 
 ## Supported file types
 
@@ -61,8 +61,10 @@ The extraction layer supports schema-driven field extraction from document text 
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python app.py
+streamlit run app.py
 ```
+
+The UI exposes tabs for dashboard, document management, question answering, document comparison, and structured extraction. The app starts with no uploaded files and creates the required local folders automatically.
 
 ## Testing
 

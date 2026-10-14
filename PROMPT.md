@@ -598,7 +598,7 @@ Update this section as the project evolves.
 - [x] Phase 4 — Evidence-backed question answering
 - [x] Phase 5 — Document comparison
 - [x] Phase 6 — Structured extraction
-- [ ] Phase 7 — Streamlit UI
+- [x] Phase 7 — Streamlit UI
 - [ ] Phase 8 — Testing and evaluation
 - [ ] Phase 9 — Packaging and documentation
 
@@ -616,4 +616,4 @@ Update this section as the project evolves.
 
 ## Next Action
 
-Move forward to **Phase 3**: hybrid retrieval with BM25 + vector results fused deterministically, while keeping retrieval separate from generation and UI concerns.
+Move forward to **Phase 8**: evaluation and reliability testing, with the Streamlit UI already in place and the service-layer functionality validated.
