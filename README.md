@@ -4,7 +4,7 @@ This project is a local-first document RAG prototype for ingesting documents, sp
 
 ## Current status
 
-The repository currently supports a local ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs. Phase 2 adds safe FAISS lifecycle management with SQLite-backed canonical metadata. Phase 3 adds hybrid retrieval with BM25 + vector fusion. Phase 4 adds evidence-grounded QA and explicit abstention when relevant passages are absent. Phase 5 adds structured document comparison that flags identical passages, value changes, not-found cases, and uncertain comparisons with real source citations. Phase 6 adds schema-validated structured extraction from document text with source references and explicit missing-field handling. Phase 7 adds a Streamlit UI with document management, document Q&A, side-by-side comparison, and structured extraction workflows built over the tested service modules.
+The repository currently supports a local ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs. Phase 2 adds safe FAISS lifecycle management with SQLite-backed canonical metadata. Phase 3 adds hybrid retrieval with BM25 + vector fusion. Phase 4 adds evidence-grounded QA and explicit abstention when relevant passages are absent. Phase 5 adds structured document comparison that flags identical passages, value changes, not-found cases, and uncertain comparisons with real source citations. Phase 6 adds schema-validated structured extraction from document text with source references and explicit missing-field handling. Phase 7 adds a Streamlit UI with document management, document Q&A, side-by-side comparison, and structured extraction workflows built over the tested service modules. Phase 8 adds a repeatable evaluation layer for retrieval quality, deterministic scoring, latency measurement, and a small synthetic corpus for offline QA benchmarking.
 
 ## Supported file types
 
@@ -65,6 +65,31 @@ streamlit run app.py
 ```
 
 The UI exposes tabs for dashboard, document management, question answering, document comparison, and structured extraction. The app starts with no uploaded files and creates the required local folders automatically.
+
+## Evaluation and reliability
+
+The project includes a lightweight, deterministic evaluation module at `src/evaluation.py` and a version-controlled synthetic corpus at `data/evaluation/synthetic_corpus.json`.
+
+```python
+from src.evaluation import evaluate_retrieval
+
+metrics = evaluate_retrieval(
+    ["doc-3", "doc-1", "doc-9"],
+    ["doc-1", "doc-2"],
+    top_k=3,
+)
+print(metrics)
+```
+
+The evaluation layer computes:
+
+- Recall@K
+- Precision@K
+- Mean Reciprocal Rank (MRR)
+- nDCG@K
+- latency for measured callables
+
+The scores are intended for reproducible comparison across retrieval settings, not as proof of factual correctness in the generated answer.
 
 ## Testing
 

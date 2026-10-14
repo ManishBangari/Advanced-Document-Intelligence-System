@@ -1,0 +1,26 @@
+{
+  "description": "Synthetic retrieval evaluation corpus for deterministic QA and retrieval checks.",
+  "queries": [
+    {
+      "query": "What is the attention mechanism?",
+      "relevant_document_ids": ["doc_attention"],
+      "relevant_chunk_ids": ["chunk_attention_01", "chunk_attention_02"],
+      "reference_answer": "The attention mechanism weights different tokens based on relevance to each other.",
+      "metadata": {"domain": "transformers"}
+    },
+    {
+      "query": "How does retrieval augmented generation work?",
+      "relevant_document_ids": ["doc_rag"],
+      "relevant_chunk_ids": ["chunk_rag_01", "chunk_rag_02"],
+      "reference_answer": "RAG combines a retriever with a generator to ground responses in documents.",
+      "metadata": {"domain": "rag"}
+    },
+    {
+      "query": "What are the trade-offs between supervised and unsupervised learning?",
+      "relevant_document_ids": ["doc_ml_basics"],
+      "relevant_chunk_ids": ["chunk_ml_01"],
+      "reference_answer": "Supervised learning uses labeled examples; unsupervised learning finds structure without labels.",
+      "metadata": {"domain": "machine_learning"}
+    }
+  ]
+}
