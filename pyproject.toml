@@ -1,7 +1,7 @@
 [project]
 name = "rag"
 version = "0.1.0"
-description = "RAG application"
+description = "Advanced Document Intelligence System"
 readme = "README.md"
 authors = [
     { name = "ManishBangari", email = "manishbangari2108@gmail.com" }
@@ -17,11 +17,15 @@ dependencies = [
     "langchain-groq>=1.1.3",
     "langchain-openai>=1.6.5",
     "langgraph>=1.2.12",
+    "pydantic>=2.8.0",
     "pymupdf>=1.28.2",
     "pypdf>=6.19.0",
     "python-dotenv>=1.2.3",
+    "rank-bm25>=0.2.2",
     "sentence-transformers>=6.1.0",
+    "streamlit>=1.41.0",
     "typesense>=2.0.0",
+    "unstructured>=0.16.0",
 ]
 
 [tool.uv]

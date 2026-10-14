@@ -1,10 +1,33 @@
 # Advanced Document Intelligence System
 
-This project is a local-first document RAG prototype for ingesting documents, splitting them into chunks, embedding them with a local sentence-transformer model, and retrieving relevant passages with FAISS.
+This repository is a local-first document intelligence application built around retrieval-augmented generation, document comparison, and structured information extraction. It ingests supported local files, splits them into chunks, embeds the chunks with a sentence-transformer model, stores them in a local FAISS index, and retrieves relevant passages with optional BM25 and hybrid search.
 
-## Current status
+## What the project does
 
-The repository currently supports a local ingestion and vector-search flow with local files under the `data/` directory. Phase 1 adds reliable ingestion metadata, file hashing, duplicate detection, and deterministic chunk IDs. Phase 2 adds safe FAISS lifecycle management with SQLite-backed canonical metadata. Phase 3 adds hybrid retrieval with BM25 + vector fusion. Phase 4 adds evidence-grounded QA and explicit abstention when relevant passages are absent. Phase 5 adds structured document comparison that flags identical passages, value changes, not-found cases, and uncertain comparisons with real source citations. Phase 6 adds schema-validated structured extraction from document text with source references and explicit missing-field handling. Phase 7 adds a Streamlit UI with document management, document Q&A, side-by-side comparison, and structured extraction workflows built over the tested service modules. Phase 8 adds a repeatable evaluation layer for retrieval quality, deterministic scoring, latency measurement, and a small synthetic corpus for offline QA benchmarking.
+- Ingests documents from the local `data/` directory
+- Preserves source metadata such as document ID, file hash, file type, source label, and page number when available
+- Builds a local FAISS index and stores canonical metadata in SQLite
+- Supports vector-only, BM25-only, and hybrid retrieval
+- Answers questions using retrieved evidence and explicit abstention when evidence is insufficient
+- Compares two selected documents with conservative, evidence-backed difference reporting
+- Extracts structured fields with Pydantic validation and source references
+- Provides a Streamlit interface for documents, search, comparison, and extraction
+- Includes offline evaluation helpers and a synthetic benchmark corpus for reproducible testing
+
+## Architecture and data flow
+
+The app is intentionally layered so that the UI stays thin and the business logic remains in modules under `src/`:
+
+- `src/data_loader.py` loads supported files and normalizes metadata
+- `src/embedding.py` handles chunking and embedding configuration
+- `src/vectorstore.py` builds and persists the FAISS index plus SQLite metadata tables
+- `src/search.py` wraps vector/BM25/hybrid retrieval and optional LLM-backed answering
+- `src/comparison.py` compares document evidence and flags uncertainty
+- `src/information_extractor.py` validates structured fields and keeps evidence chains
+- `src/evaluation.py` provides retrieval metrics and runtime measurement utilities
+- `app.py` exposes the Streamlit interface
+
+All generated runtime artifacts are local to the repository, including the FAISS index and SQLite metadata database.
 
 ## Supported file types
 
@@ -15,47 +38,9 @@ The repository currently supports a local ingestion and vector-search flow with 
 - DOCX
 - JSON
 
-## Ingestion metadata
+## Installation
 
-Each loaded document keeps source metadata such as:
-
-- `document_id`
-- `source`
-- `file_type`
-- `file_hash`
-- `page` (when available)
-- `chunk_index`
-- `chunk_id` after chunking
-
-The project uses SHA-256 hashing to detect duplicate or changed files. Empty files and empty chunks are skipped safely.
-
-## Hybrid retrieval
-
-The retrieval layer supports three modes:
-
-- `vector` for semantic retrieval only
-- `bm25` for keyword retrieval only
-- `hybrid` for Reciprocal Rank Fusion (RRF) across semantic and BM25 result lists
-
-This keeps retrieval independent from generation and allows deterministic, metadata-rich result fusion without requiring a hosted vector database.
-
-## Document comparison
-
-The comparison layer supports evidence-backed comparisons across two or more selected documents. It reports:
-
-- identical passages with no substantive change
-- value changes such as date or numeric differences
-- missing sections as `not_found_in_source` rather than proof of absence
-- uncertain comparisons when evidence is ambiguous or scope differs
-- real citations for both sides, including source and chunk metadata when available
-
-The comparison module is intentionally conservative and does not infer claims that are not directly supported by the selected passages.
-
-## Structured extraction
-
-The extraction layer supports schema-driven field extraction from document text using Pydantic validation. It preserves source evidence for each extracted value and leaves missing or unsupported fields as `null`/missing instead of guessing. The default schema covers common document facts such as contract IDs, monetary amounts, effective dates, and status values; custom schema definitions can be supplied for other document types.
-
-## Local setup
+### Option 1: Local Python environment
 
 ```bash
 python -m venv .venv
@@ -64,11 +49,52 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The UI exposes tabs for dashboard, document management, question answering, document comparison, and structured extraction. The app starts with no uploaded files and creates the required local folders automatically.
+### Option 2: uv
+
+```bash
+uv sync
+uv run streamlit run app.py
+```
+
+### Option 3: Docker
+
+```bash
+docker build -t rag-app .
+docker run --rm -p 8501:8501 --env-file .env rag-app
+```
+
+## Configuration
+
+Copy the example environment file and fill in any optional provider keys:
+
+```bash
+cp .env.example .env
+```
+
+Available settings:
+
+- `GROQ_API_KEY` for optional Groq-backed generation
+- `OPENAI_API_KEY` for optional OpenAI-backed generation if configured in the codebase later
+- `STREAMLIT_SERVER_PORT` for local/in-container port configuration
+- `APP_DATA_DIR` and `INDEX_DIR` for local storage paths
+
+The application can run in retrieval-only mode without any LLM provider configured.
+
+## Local model setup
+
+The default embedding model is `all-MiniLM-L6-v2`, which is downloaded locally by `sentence-transformers`. The first run may take a few moments as the model downloads.
+
+If an LLM generation backend is enabled, it remains optional and must be configured explicitly. The app does not require paid APIs for ingestion, indexing, retrieval, comparison, extraction, or evaluation.
+
+## Data storage and privacy behavior
+
+The project stores uploaded and processed files under the local `data/` directory and writes index metadata and FAISS artifacts under `faiss_store/`.
+
+This app is intended for local-first, privacy-conscious use. It does not require a hosted vector database or cloud storage for the core workflows. Sensitive documents should remain on your local machine or in a private environment; do not commit `.env` or private file uploads to version control.
 
 ## Evaluation and reliability
 
-The project includes a lightweight, deterministic evaluation module at `src/evaluation.py` and a version-controlled synthetic corpus at `data/evaluation/synthetic_corpus.json`.
+The project includes a lightweight evaluation layer at `src/evaluation.py` and a version-controlled synthetic dataset at `data/evaluation/synthetic_corpus.json`.
 
 ```python
 from src.evaluation import evaluate_retrieval
@@ -81,15 +107,15 @@ metrics = evaluate_retrieval(
 print(metrics)
 ```
 
-The evaluation layer computes:
+The evaluation module computes:
 
 - Recall@K
 - Precision@K
 - Mean Reciprocal Rank (MRR)
 - nDCG@K
-- latency for measured callables
+- callable latency measurements
 
-The scores are intended for reproducible comparison across retrieval settings, not as proof of factual correctness in the generated answer.
+These metrics are intended for reproducible offline benchmarking of retrieval behavior. They do not prove factual correctness of generated answers.
 
 ## Testing
 
@@ -97,8 +123,20 @@ The scores are intended for reproducible comparison across retrieval settings, n
 pytest -q
 ```
 
-## Notes
+The default suite is offline and does not depend on paid APIs.
+
+## Troubleshooting
+
+- If the app cannot find files: ensure the `data/` directory exists and contains supported file types.
+- If indexing or retrieval fails: delete stale generated artifacts in `faiss_store/` and rerun the application.
+- If the embedding model download is slow: the first run may take time while the model is fetched to the local cache.
+- If a provider-backed answer fails: the app falls back to retrieval evidence rather than fabricating a result.
+- If Docker is used: ensure `.env` is provided and that port 8501 is open on the host machine.
+
+## Notes and known limitations
 
 - The app is designed to avoid hardcoded content and to keep ingestion metadata available through retrieval.
-- FAISS remains a derived search index; canonical metadata should be preserved in the document ingest layer.
+- FAISS remains a derived search index; canonical metadata is preserved in the ingest layer and SQLite tables.
+- Empty or malformed files are skipped with warnings rather than crashing the app.
+- Local LLM generation is optional; retrieval and comparison workflows remain usable without a model provider.
 - This project is local-first and does not require a hosted vector database for core usage.

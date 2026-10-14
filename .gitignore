@@ -5,10 +5,31 @@ build/
 dist/
 wheels/
 *.egg-info
+*.sqlite3
+*.db
 
-# Virtual environments
-.venv
-venv/   
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Virtual environments and secrets
+.venv/
+venv/
 .env
+.env.*
+!.env.example
+.streamlit/
 
+# Generated project data
+faiss_store/
+*.index
+metadata.pkl
+
+data/uploads/
+data/temp/
+
+# Local editor and OS noise
+.DS_Store
 PROMPT.md
